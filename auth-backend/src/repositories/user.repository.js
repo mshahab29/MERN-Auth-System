@@ -6,7 +6,7 @@ const createUser = async (userData) => {
 };
 
 const findUserByEmail = async (email) => {
-  return await User.findOne({ email });
+  return User.findOne({ email });
 };
 
 const findUserById = async (id) => {
@@ -28,6 +28,22 @@ const deleteUser = async (id) => {
   return await User.findByIdAndDelete(id);
 };
 
+const saveRefreshToken = async (userId, refreshToken) => {
+  return await User.findByIdAndUpdate(
+    userId,
+    {
+      $push: {
+        refreshTokens: {
+          token: refreshToken,
+        },
+      },
+    },
+    {
+      returnDocument: "after",
+    },
+  );
+};
+
 module.exports = {
   createUser,
   findUserByEmail,
@@ -35,4 +51,5 @@ module.exports = {
   findByGoogleId,
   updateUser,
   deleteUser,
+  saveRefreshToken,
 };
