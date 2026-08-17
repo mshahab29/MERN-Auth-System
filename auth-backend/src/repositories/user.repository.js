@@ -34,6 +34,30 @@ const saveRefreshToken = async (userId, refreshToken) => {
     {
       $push: {
         refreshTokens: {
+          $each: [{ token: refreshToken }],
+          $slice: -5,
+        },
+      },
+    },
+    {
+      returnDocument: "after",
+    },
+  );
+};
+
+const findUserByRefreshToken = async (userId, refreshToken) => {
+  return await User.findOne({
+    _id: userId,
+    "refreshTokens.token": refreshToken,
+  });
+};
+
+const removeRefreshToken = async (userId, refreshToken) => {
+  return await User.findByIdAndUpdate(
+    userId,
+    {
+      $pull: {
+        refreshTokens: {
           token: refreshToken,
         },
       },
@@ -52,4 +76,6 @@ module.exports = {
   updateUser,
   deleteUser,
   saveRefreshToken,
+  findUserByRefreshToken,
+  removeRefreshToken,
 };

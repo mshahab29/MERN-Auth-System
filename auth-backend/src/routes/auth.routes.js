@@ -3,6 +3,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const authController = require("../controllers/auth.controller");
 // middleware to catch any validation error
 const validate = require("../middleware/validate.middleware");
+const authenticate = require("../middleware/auth.middleware");
 const {
   registerValidation,
   loginValidation,
@@ -25,5 +26,11 @@ router.post(
   validate,
   asyncHandler(authController.login),
 );
+
+router.get("/me", authenticate, asyncHandler(authController.getMe));
+
+router.post("/refresh", asyncHandler(authController.refresh));
+
+router.post("/logout", asyncHandler(authController.logout));
 
 module.exports = router;
