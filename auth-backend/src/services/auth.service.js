@@ -4,6 +4,7 @@ const {
   generateAccessToken,
   generateRefreshToken,
 } = require("../utils/jwt");
+const { verifyGoogleIdToken } = require("../utils/googleAuth");
 const ApiError = require("../utils/ApiError");
 
 const register = async (userData) => {
@@ -37,6 +38,59 @@ const login = async (loginData) => {
   await userRepository.saveRefreshToken(user._id, refreshToken);
 
   return { user, accessToken, refreshToken };
+};
+
+const googleLogin = async (credential) => {
+  const googleUser = await verifyGoogleIdToken(credential);
+  const { sub: googleId, email, name, picture, email_verified } = googleUser;
+
+  if (!email_verified) {
+    throw new ApiError(401, "Google email is not verified");
+  }
+
+  let user = await userRepository.findUserByEmail(email);
+
+  if (user) {
+    // Link Account if it exists but hasn't been linked to Google yet
+    if (!user.googleId) {
+      user.googleId = googleId;
+      user.provider = "google";
+      user.isVerified = true;
+
+      if (picture && !user.avatar) {
+        user.avatar = picture;
+      }
+
+      await user.save();
+    }
+    // Security Check: Prevent hijacking if IDs don't match
+    else if (user.googleId !== googleId) {
+      throw new ApiError(
+        409,
+        "This email is already linked to a different Google identity",
+      );
+    }
+  } else {
+    user = await userRepository.createUser({
+      name,
+      email,
+      avatar: picture,
+      provider: "google",
+      googleId,
+      isVerified: true,
+    });
+  }
+
+  const accessToken = user.generateAccessToken();
+  const refreshToken = user.generateRefreshToken();
+
+  await userRepository.saveRefreshToken(user._id, refreshToken);
+
+  return {
+    accessToken,
+    refreshToken,
+    user,
+  };
 };
 
 const refreshAccessToken = async (refreshToken) => {
@@ -85,6 +139,7 @@ const logout = async (refreshToken) => {
 module.exports = {
   register,
   login,
+  googleLogin,
   refreshAccessToken,
   logout,
 };

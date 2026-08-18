@@ -27,10 +27,16 @@ router.post(
   asyncHandler(authController.login),
 );
 
-router.get("/me", authenticate, asyncHandler(authController.getMe));
+// Login with Google
+router.post("/google", asyncHandler(authController.googleLogin));
 
+// get new access token using refresh token
 router.post("/refresh", asyncHandler(authController.refresh));
 
+// Logout user
 router.post("/logout", asyncHandler(authController.logout));
+
+// Get the authenticated user's information
+router.get("/me", authenticate, asyncHandler(authController.getMe));
 
 module.exports = router;

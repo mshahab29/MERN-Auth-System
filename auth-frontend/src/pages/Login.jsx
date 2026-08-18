@@ -2,6 +2,7 @@ import { useState } from "react";
 import authService from "../services/auth.services";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
+import GoogleLoginButton from "../components/GoogleLoginButton";
 
 const Login = () => {
   const { setUser, setAccessToken } = useAuth();
@@ -50,6 +51,30 @@ const Login = () => {
       });
     }
   };
+
+  const handleGoogleLogin = async (credential) => {
+    setUiState({
+      isLoading: true,
+      errorMsg: "",
+      successMsg: "",
+    });
+
+    try {
+      const result = await authService.googleLogin(credential);
+
+      setUser(result.data.user);
+      setAccessToken(result.data.accessToken);
+
+      navigate("/dashboard");
+    } catch (error) {
+      setUiState({
+        isLoading: false,
+        errorMsg: error.response?.data?.message || "Google login failed.",
+        successMsg: "",
+      });
+    }
+  };
+
   return (
     <div
       style={{
@@ -117,6 +142,19 @@ const Login = () => {
       <p style={{ marginTop: "15px", textAlign: "center" }}>
         Don't have an account? <Link to="/signup">Sign Up</Link>
       </p>
+
+      {/* Visual OR Divider */}
+      <div style={{ display: "flex", alignItems: "center", margin: "20px 0" }}>
+        <hr style={{ flex: 1, border: "none", borderTop: "1px solid #ccc" }} />
+        <span style={{ padding: "0 10px", color: "#666", fontSize: "14px" }}>
+          OR
+        </span>
+        <hr style={{ flex: 1, border: "none", borderTop: "1px solid #ccc" }} />
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <GoogleLoginButton onSuccess={handleGoogleLogin} />
+      </div>
     </div>
   );
 };

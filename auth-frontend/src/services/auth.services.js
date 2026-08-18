@@ -10,6 +10,15 @@ const login = async (credentials) => {
   const response = await api.post("/auth/login", credentials);
   return response.data;
 };
+
+const googleLogin = async (credential) => {
+  const response = await api.post("/auth/google", {
+    credential,
+  });
+
+  return response.data;
+};
+
 const refresh = async () => {
   const response = await api.post("/auth/refresh");
 
@@ -34,5 +43,6 @@ const authService = {
   refresh,
   getMe,
   logout,
+  googleLogin,
 };
 export default authService;
