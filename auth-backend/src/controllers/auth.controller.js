@@ -58,6 +58,32 @@ const googleLogin = async (req, res) => {
   );
 };
 
+const googleSignup = async (req, res) => {
+  const { credential } = req.body;
+
+  if (!credential) {
+    throw new ApiError(400, "Google credential is required");
+  }
+
+  const result = await authService.googleSignup(credential);
+
+  const { accessToken, refreshToken, user } = result;
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: env.NODE_ENV === "production",
+    sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  res.status(201).json(
+    new ApiResponse(201, "Google signup successful", {
+      accessToken,
+      user,
+    }),
+  );
+};
+
 const getMe = async (req, res) => {
   res
     .status(200)
@@ -103,6 +129,7 @@ module.exports = {
   register,
   login,
   googleLogin,
+  googleSignup,
   getMe,
   refresh,
   logout,

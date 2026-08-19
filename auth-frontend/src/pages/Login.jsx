@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import authService from "../services/auth.services";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
@@ -52,28 +52,31 @@ const Login = () => {
     }
   };
 
-  const handleGoogleLogin = async (credential) => {
-    setUiState({
-      isLoading: true,
-      errorMsg: "",
-      successMsg: "",
-    });
-
-    try {
-      const result = await authService.googleLogin(credential);
-
-      setUser(result.data.user);
-      setAccessToken(result.data.accessToken);
-
-      navigate("/dashboard");
-    } catch (error) {
+  const handleGoogleLogin = useCallback(
+    async (credential) => {
       setUiState({
-        isLoading: false,
-        errorMsg: error.response?.data?.message || "Google login failed.",
+        isLoading: true,
+        errorMsg: "",
         successMsg: "",
       });
-    }
-  };
+
+      try {
+        const result = await authService.googleLogin(credential);
+
+        setUser(result.data.user);
+        setAccessToken(result.data.accessToken);
+
+        navigate("/dashboard");
+      } catch (error) {
+        setUiState({
+          isLoading: false,
+          errorMsg: error.response?.data?.message || "Google login failed.",
+          successMsg: "",
+        });
+      }
+    },
+    [setUser, setAccessToken, navigate],
+  );
 
   return (
     <div

@@ -12,7 +12,15 @@ const login = async (credentials) => {
 };
 
 const googleLogin = async (credential) => {
-  const response = await api.post("/auth/google", {
+  const response = await api.post("/auth/google-login", {
+    credential,
+  });
+
+  return response.data;
+};
+
+const googleSignup = async (credential) => {
+  const response = await api.post("/auth/google-signup", {
     credential,
   });
 
@@ -44,5 +52,6 @@ const authService = {
   getMe,
   logout,
   googleLogin,
+  googleSignup,
 };
 export default authService;

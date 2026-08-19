@@ -10,9 +10,11 @@ export const AuthContext = createContext(null);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
+
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
+
   return context;
 };
 
@@ -21,59 +23,58 @@ export const AuthProvider = ({ children }) => {
   const [accessToken, setAccessToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Update access token in both React state and token manager
   const updateAccessToken = (token) => {
     setAccessToken(token);
     saveAccessToken(token);
   };
 
-  // Restore session when the application starts
+  // Clear the current authentication state
+  const clearAuthentication = () => {
+    setUser(null);
+    setAccessToken(null);
+    clearAccessToken();
+  };
+
+  // Restore the user's session when the application starts
   useEffect(() => {
     const restoreSession = async () => {
       try {
-        // Get a new access token using the
-        // HttpOnly refresh-token cookie.
         const refreshResponse = await authService.refresh();
 
         const newAccessToken = refreshResponse.data.accessToken;
 
         updateAccessToken(newAccessToken);
 
-        // Use the new access token to get the current user.
         const userResponse = await authService.getMe();
 
         setUser(userResponse.data);
       } catch (error) {
-        setUser(null);
-        setAccessToken(null);
-        clearAccessToken();
+        clearAuthentication();
       } finally {
         setIsLoading(false);
       }
     };
+
     restoreSession();
   }, []);
 
-  // Register the logout handler for Axios
+  // Register the logout handler used by Axios
   useEffect(() => {
     setLogoutHandler(() => {
-      setUser(null);
-      setAccessToken(null);
-      clearAccessToken();
+      clearAuthentication();
     });
   }, []);
 
-  // Normal user logout
+  // Logout the current user
   const logout = async () => {
     try {
       await authService.logout();
     } finally {
-      setUser(null);
-      setAccessToken(null);
-      clearAccessToken();
+      clearAuthentication();
     }
   };
 
-  // Provide authentication state to React
   return (
     <AuthContext.Provider
       value={{

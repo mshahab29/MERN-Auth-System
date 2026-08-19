@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import authService from "../services/auth.services";
+import GoogleLoginButton from "../components/GoogleLoginButton";
 
 const Register = () => {
+  const { setUser, setAccessToken } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
@@ -33,7 +36,8 @@ const Register = () => {
         isLoading: false,
         errorMsg: "",
         successMsg:
-          result.message || "Account created successfully! Redirecting to login...",
+          result.message ||
+          "Account created successfully! Redirecting to login...",
       });
       setFormData({ name: "", email: "", password: "" });
       setTimeout(() => {
@@ -51,6 +55,33 @@ const Register = () => {
       });
     }
   };
+
+  const handleGoogleSignup = useCallback(
+    async (credential) => {
+      setUiState({
+        isLoading: true,
+        errorMsg: "",
+        successMsg: "",
+      });
+
+      try {
+        const result = await authService.googleSignup(credential);
+
+        setUser(result.data.user);
+        setAccessToken(result.data.accessToken);
+
+        navigate("/dashboard");
+      } catch (error) {
+        setUiState({
+          isLoading: false,
+          errorMsg: error.response?.data?.message || "Google signup failed.",
+          successMsg: "",
+        });
+      }
+    },
+    [setUser, setAccessToken, navigate],
+  );
+
   return (
     <div
       style={{
@@ -130,6 +161,19 @@ const Register = () => {
       <p style={{ marginTop: "15px", textAlign: "center" }}>
         Already have an account? <Link to="/login">Log In</Link>
       </p>
+
+      {/* Visual OR Divider */}
+      <div style={{ display: "flex", alignItems: "center", margin: "20px 0" }}>
+        <hr style={{ flex: 1, border: "none", borderTop: "1px solid #ccc" }} />
+        <span style={{ padding: "0 10px", color: "#666", fontSize: "14px" }}>
+          OR
+        </span>
+        <hr style={{ flex: 1, border: "none", borderTop: "1px solid #ccc" }} />
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <GoogleLoginButton onSuccess={handleGoogleSignup} />
+      </div>
     </div>
   );
 };

@@ -40,6 +40,7 @@ const login = async (loginData) => {
   return { user, accessToken, refreshToken };
 };
 
+// Google LOGIN only work for an existing Google account
 const googleLogin = async (credential) => {
   const googleUser = await verifyGoogleIdToken(credential);
   const { sub: googleId, email, name, picture, email_verified } = googleUser;
@@ -48,38 +49,62 @@ const googleLogin = async (credential) => {
     throw new ApiError(401, "Google email is not verified");
   }
 
-  let user = await userRepository.findUserByEmail(email);
+  let user = await userRepository.findByGoogleId(googleId);
 
-  if (user) {
-    // Link Account if it exists but hasn't been linked to Google yet
-    if (!user.googleId) {
-      user.googleId = googleId;
-      user.provider = "google";
-      user.isVerified = true;
-
-      if (picture && !user.avatar) {
-        user.avatar = picture;
-      }
-
-      await user.save();
-    }
-    // Security Check: Prevent hijacking if IDs don't match
-    else if (user.googleId !== googleId) {
-      throw new ApiError(
-        409,
-        "This email is already linked to a different Google identity",
-      );
-    }
-  } else {
-    user = await userRepository.createUser({
-      name,
-      email,
-      avatar: picture,
-      provider: "google",
-      googleId,
-      isVerified: true,
-    });
+  if (!user) {
+    throw new ApiError(
+      404,
+      "No account is registered with this Google account. Please sign up first.",
+    );
   }
+
+  const accessToken = user.generateAccessToken();
+  const refreshToken = user.generateRefreshToken();
+
+  await userRepository.saveRefreshToken(user._id, refreshToken);
+
+  return {
+    accessToken,
+    refreshToken,
+    user,
+  };
+};
+
+const googleSignup = async (credential) => {
+  const googleUser = await verifyGoogleIdToken(credential);
+
+  const { sub: googleId, email, name, picture, email_verified } = googleUser;
+
+  if (!email_verified) {
+    throw new ApiError(401, "Google email is not verified");
+  }
+
+  const existingGoogleUser = await userRepository.findUserByGoogleId(googleId);
+
+  if (existingGoogleUser) {
+    throw new ApiError(
+      409,
+      "This Google account is already registered. Please log in instead.",
+    );
+  }
+
+  const existingEmailUser = await userRepository.findUserByEmail(email);
+
+  if (existingEmailUser) {
+    throw new ApiError(
+      409,
+      "An account with this email already exists. Please log in instead.",
+    );
+  }
+
+  const user = await userRepository.createUser({
+    name,
+    email,
+    avatar: picture,
+    provider: "google",
+    googleId,
+    isVerified: true,
+  });
 
   const accessToken = user.generateAccessToken();
   const refreshToken = user.generateRefreshToken();
@@ -140,6 +165,7 @@ module.exports = {
   register,
   login,
   googleLogin,
+  googleSignup,
   refreshAccessToken,
   logout,
 };

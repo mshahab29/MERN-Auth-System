@@ -28,7 +28,9 @@ router.post(
 );
 
 // Login with Google
-router.post("/google", asyncHandler(authController.googleLogin));
+router.post("/google-login", asyncHandler(authController.googleLogin));
+
+router.post("/google-signup", asyncHandler(authController.googleSignup));
 
 // get new access token using refresh token
 router.post("/refresh", asyncHandler(authController.refresh));
