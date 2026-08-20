@@ -5,6 +5,9 @@ const {
   generateRefreshToken,
 } = require("../utils/jwt");
 const { verifyGoogleIdToken } = require("../utils/googleAuth");
+const { generateEmailToken } = require("../utils/emailToken");
+const { sendVerificationEmail } = require("./email.service");
+const crypto = require("crypto");
 const ApiError = require("../utils/ApiError");
 
 const register = async (userData) => {
@@ -15,8 +18,38 @@ const register = async (userData) => {
     throw new ApiError(409, "An account with this email already exists");
   }
 
-  const newUser = await userRepository.createUser({ name, email, password });
+  const { rawToken, hashedToken } = generateEmailToken();
+
+  const newUser = await userRepository.createUser({
+    name,
+    email,
+    password,
+    verificationToken: hashedToken,
+    verificationTokenExpires: new Date(Date.now() + 15 * 60 * 1000),
+  });
+  await sendVerificationEmail({
+    email: newUser.email,
+    name: newUser.name,
+    token: rawToken,
+  });
   return newUser;
+};
+
+const verifyEmail = async (rawToken) => {
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(rawToken)
+    .digest("hex");
+
+  const user = await userRepository.findUserByVerificationToken(hashedToken);
+
+  if (!user) {
+    throw new ApiError(400, "Invalid or expired verification link");
+  }
+
+  await userRepository.verifyUserEmail(user._id);
+
+  return true;
 };
 
 const login = async (loginData) => {
@@ -30,6 +63,10 @@ const login = async (loginData) => {
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
     throw new ApiError(401, "Invalid credentials");
+  }
+
+  if (!user.isVerified) {
+    throw new ApiError(403, "Please verify your email before logging in.");
   }
 
   const accessToken = await user.generateAccessToken();
@@ -79,7 +116,7 @@ const googleSignup = async (credential) => {
     throw new ApiError(401, "Google email is not verified");
   }
 
-  const existingGoogleUser = await userRepository.findUserByGoogleId(googleId);
+  const existingGoogleUser = await userRepository.findByGoogleId(googleId);
 
   if (existingGoogleUser) {
     throw new ApiError(
@@ -163,6 +200,7 @@ const logout = async (refreshToken) => {
 
 module.exports = {
   register,
+  verifyEmail,
   login,
   googleLogin,
   googleSignup,

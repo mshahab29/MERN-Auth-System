@@ -17,6 +17,31 @@ const findByGoogleId = async (googleId) => {
   return await User.findOne({ googleId });
 };
 
+const findUserByVerificationToken = async (hashedToken) => {
+  return User.findOne({
+    verificationToken: hashedToken,
+    verificationTokenExpires: { $gt: new Date() },
+  });
+};
+
+const verifyUserEmail = async (userId) => {
+  return User.findByIdAndUpdate(
+    userId,
+    {
+      $set: {
+        isVerified: true,
+      },
+      $unset: {
+        verificationToken: 1,
+        verificationTokenExpires: 1,
+      },
+    },
+    {
+      new: true,
+    },
+  );
+};
+
 const updateUser = async (id, updateData) => {
   return await User.findByIdAndUpdate(id, updateData, {
     new: true,
@@ -73,6 +98,8 @@ module.exports = {
   findUserByEmail,
   findUserById,
   findByGoogleId,
+  findUserByVerificationToken,
+  verifyUserEmail,
   updateUser,
   deleteUser,
   saveRefreshToken,

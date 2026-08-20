@@ -18,7 +18,7 @@ const env = {
   // Email
   SMTP: {
     HOST: process.env.SMTP_HOST,
-    PORT: process.env.SMTP_PORT,
+    PORT: Number(process.env.SMTP_PORT),
     USER: process.env.SMTP_USER,
     PASS: process.env.SMTP_PASS,
     FROM: process.env.SMTP_FROM,

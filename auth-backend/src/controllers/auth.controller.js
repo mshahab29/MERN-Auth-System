@@ -11,6 +11,18 @@ const register = async (req, res) => {
     .json(new ApiResponse(201, "User registered successfully", newUser));
 };
 
+const verifyEmail = async (req, res) => {
+  const { token } = req.query;
+
+  if (!token) {
+    throw new ApiError(400, "Verification token is required");
+  }
+
+  await authService.verifyEmail(token);
+
+  res.status(200).json(new ApiResponse(200, "Email verified successfully"));
+};
+
 const login = async (req, res) => {
   const { user, accessToken, refreshToken } = await authService.login(req.body);
 
@@ -127,6 +139,7 @@ const logout = async (req, res) => {
 
 module.exports = {
   register,
+  verifyEmail,
   login,
   googleLogin,
   googleSignup,

@@ -19,6 +19,8 @@ router.post(
   asyncHandler(authController.register),
 );
 
+router.get("/verify-email", asyncHandler(authController.verifyEmail));
+
 // Login an existing user
 router.post(
   "/login",

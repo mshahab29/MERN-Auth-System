@@ -6,6 +6,16 @@ const register = async (userData) => {
   return response.data;
 };
 
+const verifyEmail = async (token) => {
+  const response = await api.get("/auth/verify-email", {
+    params: {
+      token,
+    },
+  });
+
+  return response.data;
+};
+
 const login = async (credentials) => {
   const response = await api.post("/auth/login", credentials);
   return response.data;
@@ -53,5 +63,6 @@ const authService = {
   logout,
   googleLogin,
   googleSignup,
+  verifyEmail,
 };
 export default authService;
