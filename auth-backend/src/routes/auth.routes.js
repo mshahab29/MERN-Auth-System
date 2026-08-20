@@ -20,6 +20,8 @@ router.post(
 );
 
 router.get("/verify-email", asyncHandler(authController.verifyEmail));
+router.post("/forgot-password", asyncHandler(authController.forgotPassword));
+router.post("/reset-password", asyncHandler(authController.resetPassword));
 
 // Login an existing user
 router.post(

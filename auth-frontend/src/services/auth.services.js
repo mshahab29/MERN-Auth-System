@@ -55,6 +55,20 @@ const logout = async () => {
   return response.data;
 };
 
+const forgotPassword = async (email) => {
+  const response = await api.post("/auth/forgot-password", { email });
+  return response.data;
+};
+
+const resetPassword = async (token, password) => {
+  const response = await api.post("/auth/reset-password", {
+    token,
+    password,
+  });
+
+  return response.data;
+};
+
 const authService = {
   register,
   login,
@@ -64,5 +78,7 @@ const authService = {
   googleLogin,
   googleSignup,
   verifyEmail,
+  forgotPassword,
+  resetPassword,
 };
 export default authService;

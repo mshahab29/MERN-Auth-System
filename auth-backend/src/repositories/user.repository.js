@@ -93,6 +93,71 @@ const removeRefreshToken = async (userId, refreshToken) => {
   );
 };
 
+const removeAllRefreshTokens = async (userId) => {
+  return User.findByIdAndUpdate(
+    userId,
+    {
+      $set: {
+        refreshTokens: [],
+      },
+    },
+    {
+      returnDocument: "after",
+    },
+  );
+};
+
+const findUserByResetPasswordToken = async (hashedToken) => {
+  return User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpires: { $gt: new Date() },
+  });
+};
+
+const saveResetPasswordToken = async (userId, hashedToken, expiresAt) => {
+  return User.findByIdAndUpdate(
+    userId,
+    {
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: expiresAt,
+    },
+    {
+      returnDocument: "after",
+    },
+  );
+};
+
+const clearResetPasswordToken = async (userId) => {
+  return User.findByIdAndUpdate(
+    userId,
+    {
+      $unset: {
+        resetPasswordToken: "",
+        resetPasswordExpires: "",
+      },
+    },
+    {
+      returnDocument: "after",
+    },
+  );
+};
+
+const resetPassword = async (userId, password) => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    return null;
+  }
+
+  user.password = password;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+
+  await user.save();
+
+  return user;
+};
+
 module.exports = {
   createUser,
   findUserByEmail,
@@ -105,4 +170,9 @@ module.exports = {
   saveRefreshToken,
   findUserByRefreshToken,
   removeRefreshToken,
+  findUserByResetPasswordToken,
+  saveResetPasswordToken,
+  clearResetPasswordToken,
+  resetPassword,
+  removeAllRefreshTokens,
 };

@@ -142,6 +142,11 @@ const Login = () => {
           {uiState.isLoading ? "Logging in..." : "Sign In"}
         </button>
       </form>
+
+      <div style={{ textAlign: "right" }}>
+        <Link to="/forgot-password">Forgot Password?</Link>
+      </div>
+
       <p style={{ marginTop: "15px", textAlign: "center" }}>
         Don't have an account? <Link to="/signup">Sign Up</Link>
       </p>

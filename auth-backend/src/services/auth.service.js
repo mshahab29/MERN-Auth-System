@@ -6,7 +6,12 @@ const {
 } = require("../utils/jwt");
 const { verifyGoogleIdToken } = require("../utils/googleAuth");
 const { generateEmailToken } = require("../utils/emailToken");
-const { sendVerificationEmail } = require("./email.service");
+const { generatePasswordResetToken } = require("../utils/passwordResetToken");
+
+const {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+} = require("./email.service");
 const crypto = require("crypto");
 const ApiError = require("../utils/ApiError");
 
@@ -198,6 +203,54 @@ const logout = async (refreshToken) => {
   }
 };
 
+const forgotPassword = async (email) => {
+  const user = await userRepository.findUserByEmail(email);
+
+  if (!user) {
+    return;
+  }
+
+  // Google-only accounts don't have a password to reset
+  if (user.provider === "google") {
+    throw new ApiError(
+      400,
+      "This account uses Google login. Please continue with Google.",
+    );
+  }
+
+  const { rawToken, hashedToken } = generatePasswordResetToken();
+
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+  await userRepository.saveResetPasswordToken(user._id, hashedToken, expiresAt);
+
+  await sendPasswordResetEmail({
+    email: user.email,
+    name: user.name,
+    token: rawToken,
+  });
+
+  return true;
+};
+
+const resetPassword = async (rawToken, newPassword) => {
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(rawToken)
+    .digest("hex");
+
+  const user = await userRepository.findUserByResetPasswordToken(hashedToken);
+
+  if (!user) {
+    throw new ApiError(400, "Invalid or expired password reset link");
+  }
+
+  await userRepository.resetPassword(user._id, newPassword);
+  await userRepository.removeAllRefreshTokens(user._id);
+
+  return true;
+};
+
 module.exports = {
   register,
   verifyEmail,
@@ -206,4 +259,6 @@ module.exports = {
   googleSignup,
   refreshAccessToken,
   logout,
+  forgotPassword,
+  resetPassword,
 };

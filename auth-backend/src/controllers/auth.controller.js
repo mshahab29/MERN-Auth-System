@@ -8,7 +8,13 @@ const register = async (req, res) => {
 
   res
     .status(201)
-    .json(new ApiResponse(201, "User registered successfully", newUser));
+    .json(
+      new ApiResponse(
+        201,
+        "User registered successfully. Check you email for verification.",
+        newUser,
+      ),
+    );
 };
 
 const verifyEmail = async (req, res) => {
@@ -137,6 +143,41 @@ const logout = async (req, res) => {
   res.status(200).json(new ApiResponse(200, "Logged out successfully"));
 };
 
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new ApiError(400, "Email is required");
+  }
+
+  await authService.forgotPassword(email);
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        "If an account exists with this email, a password reset link has been sent.",
+      ),
+    );
+};
+
+const resetPassword = async (req, res) => {
+  const { token, password } = req.body;
+
+  if (!token) {
+    throw new ApiError(400, "Reset token is required");
+  }
+
+  if (!password) {
+    throw new ApiError(400, "New password is required");
+  }
+
+  await authService.resetPassword(token, password);
+
+  res.status(200).json(new ApiResponse(200, "Password reset successfully"));
+};
+
 module.exports = {
   register,
   verifyEmail,
@@ -146,4 +187,6 @@ module.exports = {
   getMe,
   refresh,
   logout,
+  forgotPassword,
+  resetPassword,
 };
