@@ -6,11 +6,11 @@ const createUser = async (userData) => {
 };
 
 const findUserByEmail = async (email) => {
-  return User.findOne({ email });
+  return User.findOne({ email }).select("+password +refreshTokens");
 };
 
 const findUserById = async (id) => {
-  return await User.findById(id);
+  return await User.findById(id).select("+passwordChangedAt");
 };
 
 const findByGoogleId = async (googleId) => {
@@ -20,8 +20,7 @@ const findByGoogleId = async (googleId) => {
 const findUserByVerificationToken = async (hashedToken) => {
   return User.findOne({
     verificationToken: hashedToken,
-    verificationTokenExpires: { $gt: new Date() },
-  });
+  }).select("+verificationToken +verificationTokenExpires +isVerified");
 };
 
 const verifyUserEmail = async (userId) => {
@@ -32,7 +31,6 @@ const verifyUserEmail = async (userId) => {
         isVerified: true,
       },
       $unset: {
-        verificationToken: 1,
         verificationTokenExpires: 1,
       },
     },
@@ -54,6 +52,11 @@ const deleteUser = async (id) => {
 };
 
 const saveRefreshToken = async (userId, refreshToken) => {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  await User.findByIdAndUpdate(userId, {
+    $pull: { refreshTokens: { createdAt: { $lt: sevenDaysAgo } } },
+  });
+
   return await User.findByIdAndUpdate(
     userId,
     {
@@ -74,7 +77,7 @@ const findUserByRefreshToken = async (userId, refreshToken) => {
   return await User.findOne({
     _id: userId,
     "refreshTokens.token": refreshToken,
-  });
+  }).select("+refreshTokens");
 };
 
 const removeRefreshToken = async (userId, refreshToken) => {
@@ -111,7 +114,7 @@ const findUserByResetPasswordToken = async (hashedToken) => {
   return User.findOne({
     resetPasswordToken: hashedToken,
     resetPasswordExpires: { $gt: new Date() },
-  });
+  }).select("+resetPasswordToken +resetPasswordExpires");
 };
 
 const saveResetPasswordToken = async (userId, hashedToken, expiresAt) => {
@@ -143,13 +146,14 @@ const clearResetPasswordToken = async (userId) => {
 };
 
 const resetPassword = async (userId, password) => {
-  const user = await User.findById(userId);
+  const user = await User.findById(userId).select("+password");
 
   if (!user) {
     return null;
   }
 
   user.password = password;
+  user.passwordChangedAt = new Date();
   user.resetPasswordToken = undefined;
   user.resetPasswordExpires = undefined;
 

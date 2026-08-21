@@ -3,6 +3,14 @@ const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 const env = require("../config/env");
 
+const getCookieOptions = () => ({
+  httpOnly: true,
+  secure: env.NODE_ENV === "production",
+  sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+  path: "/api/auth",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+});
+
 const register = async (req, res) => {
   const newUser = await authService.register(req.body);
 
@@ -24,24 +32,42 @@ const verifyEmail = async (req, res) => {
     throw new ApiError(400, "Verification token is required");
   }
 
-  await authService.verifyEmail(token);
+  const result = await authService.verifyEmail(token);
 
-  res.status(200).json(new ApiResponse(200, "Email verified successfully"));
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, result.message, {
+        alreadyVerified: result.alreadyVerified,
+      }),
+    );
+};
+
+const resendVerification = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new ApiError(400, "Email is required");
+  }
+
+  await authService.resendVerification(email);
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        "If an unverified account exists with this email, a verification link has been sent.",
+      ),
+    );
 };
 
 const login = async (req, res) => {
   const { user, accessToken, refreshToken } = await authService.login(req.body);
 
-  const cookieOptions = {
-    httpOnly: true, // protection against XSS
-    secure: env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  };
-
   res
     .status(200)
-    .cookie("refreshToken", refreshToken, cookieOptions)
+    .cookie("refreshToken", refreshToken, getCookieOptions())
     .json(
       new ApiResponse(200, "User logged in successfully", {
         user,
@@ -61,12 +87,7 @@ const googleLogin = async (req, res) => {
 
   const { accessToken, refreshToken, user } = result;
 
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: env.NODE_ENV === "production",
-    sameSite: env.NODE_ENV === "production" ? "none" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  res.cookie("refreshToken", refreshToken, getCookieOptions());
 
   res.status(200).json(
     new ApiResponse(200, "Google login successful", {
@@ -87,12 +108,7 @@ const googleSignup = async (req, res) => {
 
   const { accessToken, refreshToken, user } = result;
 
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: env.NODE_ENV === "production",
-    sameSite: env.NODE_ENV === "production" ? "none" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  res.cookie("refreshToken", refreshToken, getCookieOptions());
 
   res.status(201).json(
     new ApiResponse(201, "Google signup successful", {
@@ -117,12 +133,7 @@ const refresh = async (req, res) => {
 
   const tokens = await authService.refreshAccessToken(refreshToken);
 
-  res.cookie("refreshToken", tokens.refreshToken, {
-    httpOnly: true, // protection against XSS
-    secure: env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  });
+  res.cookie("refreshToken", tokens.refreshToken, getCookieOptions());
 
   res.status(200).json(
     new ApiResponse(200, "Access token refreshed successfully", {
@@ -138,7 +149,7 @@ const logout = async (req, res) => {
     await authService.logout(refreshToken);
   }
 
-  res.clearCookie("refreshToken");
+  res.clearCookie("refreshToken", { path: "/api/auth" });
 
   res.status(200).json(new ApiResponse(200, "Logged out successfully"));
 };
@@ -181,6 +192,7 @@ const resetPassword = async (req, res) => {
 module.exports = {
   register,
   verifyEmail,
+  resendVerification,
   login,
   googleLogin,
   googleSignup,

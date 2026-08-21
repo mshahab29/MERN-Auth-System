@@ -20,7 +20,16 @@ const register = async (userData) => {
   const existingUser = await userRepository.findUserByEmail(email);
 
   if (existingUser) {
-    throw new ApiError(409, "An account with this email already exists");
+    if (!existingUser.isVerified) {
+      throw new ApiError(
+        409,
+        "An unverified account with this email already exists. Please check your email or resend the verification link.",
+      );
+    }
+    throw new ApiError(
+      409,
+      "An account with this email already exists. Please log in instead.",
+    );
   }
 
   const { rawToken, hashedToken } = generateEmailToken();
@@ -49,12 +58,32 @@ const verifyEmail = async (rawToken) => {
   const user = await userRepository.findUserByVerificationToken(hashedToken);
 
   if (!user) {
-    throw new ApiError(400, "Invalid or expired verification link");
+    throw new ApiError(400, "Invalid verification link.");
+  }
+
+  if (user.isVerified) {
+    return {
+      alreadyVerified: true,
+      message: "Email is already verified! You can log in.",
+    };
+  }
+
+  if (
+    user.verificationTokenExpires &&
+    user.verificationTokenExpires < new Date()
+  ) {
+    throw new ApiError(
+      400,
+      "Verification link has expired. Please request a new link.",
+    );
   }
 
   await userRepository.verifyUserEmail(user._id);
 
-  return true;
+  return {
+    alreadyVerified: false,
+    message: "Email verified successfully!",
+  };
 };
 
 const login = async (loginData) => {
@@ -62,12 +91,19 @@ const login = async (loginData) => {
   const user = await userRepository.findUserByEmail(email);
 
   if (!user) {
-    throw new ApiError(404, "Invalid email or password");
+    throw new ApiError(401, "Invalid email or password");
+  }
+
+  if (user.provider === "google" || !user.password) {
+    throw new ApiError(
+      400,
+      "This account was created using Google. Please sign in with Google.",
+    );
   }
 
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
-    throw new ApiError(401, "Invalid credentials");
+    throw new ApiError(401, "Invalid email or password");
   }
 
   if (!user.isVerified) {
@@ -160,6 +196,34 @@ const googleSignup = async (credential) => {
   };
 };
 
+const resendVerification = async (email) => {
+  const user = await userRepository.findUserByEmail(email);
+
+  if (!user) {
+    // Return true silently to prevent account enumeration
+    return true;
+  }
+
+  if (user.isVerified) {
+    throw new ApiError(400, "This account is already verified. Please log in.");
+  }
+
+  const { rawToken, hashedToken } = generateEmailToken();
+
+  await userRepository.updateUser(user._id, {
+    verificationToken: hashedToken,
+    verificationTokenExpires: new Date(Date.now() + 15 * 60 * 1000),
+  });
+
+  await sendVerificationEmail({
+    email: user.email,
+    name: user.name,
+    token: rawToken,
+  });
+
+  return true;
+};
+
 const refreshAccessToken = async (refreshToken) => {
   const decoded = verifyRefreshToken(refreshToken);
 
@@ -169,12 +233,19 @@ const refreshAccessToken = async (refreshToken) => {
   );
 
   if (!user) {
-    throw new ApiError(401, "Invalid refresh token");
+    // REUSE DETECTION: Token passed JWT verification but is missing from DB.
+    // Revoke all tokens for this user account.
+    await userRepository.removeAllRefreshTokens(decoded.id);
+    throw new ApiError(
+      401,
+      "Security alert: Refresh token reuse detected. All active sessions have been revoked. Please log in again.",
+    );
   }
   await userRepository.removeRefreshToken(user._id, refreshToken);
 
   const newAccessToken = generateAccessToken({
     id: user._id,
+    role: user.role,
   });
 
   const newRefreshToken = generateRefreshToken({
@@ -208,6 +279,13 @@ const forgotPassword = async (email) => {
 
   if (!user) {
     return;
+  }
+
+  if (!user.isVerified) {
+    throw new ApiError(
+      403,
+      "Your email address is not verified. Please verify your email before resetting your password.",
+    );
   }
 
   // Google-only accounts don't have a password to reset
@@ -254,6 +332,7 @@ const resetPassword = async (rawToken, newPassword) => {
 module.exports = {
   register,
   verifyEmail,
+  resendVerification,
   login,
   googleLogin,
   googleSignup,

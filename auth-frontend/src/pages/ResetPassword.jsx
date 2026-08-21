@@ -133,7 +133,7 @@ const ResetPassword = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength="6"
+                minLength="8"
                 style={{
                   width: "100%",
                   padding: "10px",
@@ -157,7 +157,7 @@ const ResetPassword = () => {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                minLength="6"
+                minLength="8"
                 style={{
                   width: "100%",
                   padding: "10px",

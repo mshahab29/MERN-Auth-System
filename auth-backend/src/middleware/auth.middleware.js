@@ -27,6 +27,19 @@ const authenticate = asyncHandler(async (req, res, next) => {
     throw new ApiError(401, "User no longer exists.");
   }
 
+  if (currentUser.passwordChangedAt) {
+    const changedTimestamp = parseInt(
+      currentUser.passwordChangedAt.getTime() / 1000,
+      10,
+    );
+    if (decoded.iat < changedTimestamp) {
+      throw new ApiError(
+        401,
+        "User recently changed password. Please log in again.",
+      );
+    }
+  }
+
   req.user = currentUser;
 
   next();

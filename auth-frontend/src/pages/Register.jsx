@@ -11,6 +11,7 @@ const Register = () => {
     name: "",
     email: "",
     password: "",
+    confirmPassword: "",
   });
 
   const [uiState, setUiState] = useState({
@@ -28,9 +29,23 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (formData.password !== formData.confirmPassword) {
+      setUiState({
+        isLoading: false,
+        errorMsg: "Passwords do not match",
+        successMsg: "",
+      });
+      return;
+    }
+
     setUiState({ isLoading: true, errorMsg: "", successMsg: "" });
     try {
-      const result = await authService.register(formData);
+      const result = await authService.register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      });
 
       setUiState({
         isLoading: false,
@@ -39,7 +54,7 @@ const Register = () => {
           result.message ||
           "Account created successfully! Redirecting to login...",
       });
-      setFormData({ name: "", email: "", password: "" });
+      setFormData({ name: "", email: "", password: "", confirmPassword: "" });
       setTimeout(() => {
         navigate("/login");
       }, 1500);
@@ -139,6 +154,18 @@ const Register = () => {
             id="password"
             name="password"
             value={formData.password}
+            onChange={handleChange}
+            required
+            style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
+          />
+        </div>
+        <div>
+          <label htmlFor="confirmPassword">Confirm Password:</label>
+          <input
+            type="password"
+            id="confirmPassword"
+            name="confirmPassword"
+            value={formData.confirmPassword}
             onChange={handleChange}
             required
             style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}

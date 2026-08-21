@@ -7,6 +7,8 @@ const authenticate = require("../middleware/auth.middleware");
 const {
   registerValidation,
   loginValidation,
+  resetPasswordValidation,
+  resendVerificationValidation,
 } = require("../validators/auth.validator");
 
 const router = express.Router();
@@ -20,8 +22,19 @@ router.post(
 );
 
 router.get("/verify-email", asyncHandler(authController.verifyEmail));
+router.post(
+  "/resend-verification",
+  resendVerificationValidation,
+  validate,
+  asyncHandler(authController.resendVerification),
+);
 router.post("/forgot-password", asyncHandler(authController.forgotPassword));
-router.post("/reset-password", asyncHandler(authController.resetPassword));
+router.post(
+  "/reset-password",
+  resetPasswordValidation,
+  validate,
+  asyncHandler(authController.resetPassword),
+);
 
 // Login an existing user
 router.post(

@@ -18,6 +18,25 @@ const Login = () => {
     successMsg: "",
   });
 
+  const [showResend, setShowResend] = useState(false);
+  const [resendStatus, setResendStatus] = useState("");
+
+  const handleResendClick = async () => {
+    if (!formData.email) {
+      setResendStatus("Please enter your email above.");
+      return;
+    }
+    setResendStatus("Sending...");
+    try {
+      await authService.resendVerification(formData.email);
+      setResendStatus("Verification link sent! Check your inbox.");
+    } catch (err) {
+      setResendStatus(
+        err.response?.data?.message || "Failed to resend verification email.",
+      );
+    }
+  };
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -27,6 +46,8 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setShowResend(false);
+    setResendStatus("");
     setUiState({ isLoading: true, errorMsg: "", successMsg: "" });
     try {
       const result = await authService.login(formData);
@@ -41,6 +62,10 @@ const Login = () => {
       setFormData({ email: "", password: "" });
       navigate("/dashboard");
     } catch (error) {
+      if (error.response?.status === 403) {
+        setShowResend(true);
+      }
+
       const errorMessage =
         error.response?.data?.message || "Login failed. Please try again.";
 
@@ -92,6 +117,30 @@ const Login = () => {
       {uiState.errorMsg && (
         <div style={{ color: "red", marginBottom: "10px" }}>
           {uiState.errorMsg}
+          {showResend && (
+            <div style={{ marginTop: "8px" }}>
+              <button
+                type="button"
+                onClick={handleResendClick}
+                style={{
+                  padding: "6px 12px",
+                  backgroundColor: "#28a745",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                }}
+              >
+                Resend Verification Link
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      {resendStatus && (
+        <div style={{ color: "#0056b3", marginBottom: "10px", fontSize: "14px" }}>
+          {resendStatus}
         </div>
       )}
       {uiState.successMsg && (

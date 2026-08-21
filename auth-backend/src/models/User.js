@@ -18,8 +18,9 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      minlength: 6,
+      minlength: 8,
       trim: true,
+      select: false,
     },
     avatar: {
       type: String,
@@ -45,28 +46,38 @@ const userSchema = new mongoose.Schema(
     },
     verificationToken: {
       type: String,
+      select: false,
     },
     verificationTokenExpires: {
       type: Date,
+      select: false,
     },
     resetPasswordToken: {
       type: String,
+      select: false,
     },
     resetPasswordExpires: {
       type: Date,
+      select: false,
     },
-    refreshTokens: [
-      {
-        token: {
-          type: String,
-          required: true,
+    passwordChangedAt: {
+      type: Date,
+    },
+    refreshTokens: {
+      type: [
+        {
+          token: {
+            type: String,
+            required: true,
+          },
+          createdAt: {
+            type: Date,
+            default: Date.now,
+          },
         },
-        createdAt: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
+      ],
+      select: false,
+    },
   },
   {
     timestamps: true,
