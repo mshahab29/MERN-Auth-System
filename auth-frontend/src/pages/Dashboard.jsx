@@ -1,4 +1,5 @@
 import { useAuth } from "../context/AuthContext";
+import { Link } from "react-router-dom";
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -34,11 +35,28 @@ const Dashboard = () => {
             marginTop: "0",
             color: "#111827",
             fontSize: "28px",
-            marginBottom: "20px",
+            marginBottom: "10px",
           }}
         >
           Dashboard
         </h1>
+
+        <div style={{ marginBottom: "20px" }}>
+          <span
+            style={{
+              display: "inline-block",
+              padding: "4px 12px",
+              borderRadius: "12px",
+              backgroundColor: user?.role === "admin" ? "#f8d7da" : "#cff4fc",
+              color: user?.role === "admin" ? "#842029" : "#055160",
+              fontWeight: "bold",
+              fontSize: "14px",
+              textTransform: "uppercase",
+            }}
+          >
+            Role: {user?.role}
+          </span>
+        </div>
 
         <h2
           style={{
@@ -47,23 +65,63 @@ const Dashboard = () => {
             margin: "10px 0",
           }}
         >
-          Welcome, {user.name}
+          Welcome, {user?.name}
         </h2>
 
         <p
           style={{
             color: "#6b7280",
             fontSize: "16px",
-            marginBottom: "30px",
+            marginBottom: "25px",
           }}
         >
-          Email: {user.email}
+          Email: {user?.email}
         </p>
+
+        {/* RBAC Quick Navigation Section */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+            marginBottom: "25px",
+          }}
+        >
+          <Link
+            to="/user-area"
+            style={{
+              padding: "10px",
+              backgroundColor: "#0d6efd",
+              color: "#fff",
+              textDecoration: "none",
+              borderRadius: "6px",
+              fontWeight: "bold",
+            }}
+          >
+            Go to User Area 👤
+          </Link>
+
+          {user?.role === "admin" && (
+            <Link
+              to="/admin-area"
+              style={{
+                padding: "10px",
+                backgroundColor: "#dc3545",
+                color: "#fff",
+                textDecoration: "none",
+                borderRadius: "6px",
+                fontWeight: "bold",
+              }}
+            >
+              Go to Admin Panel 🛡️
+            </Link>
+          )}
+        </div>
 
         <button
           onClick={handleLogout}
           style={{
-            backgroundColor: "#ef4444",
+            backgroundColor: "#6c757d",
             color: "#ffffff",
             border: "none",
             padding: "12px 20px",
