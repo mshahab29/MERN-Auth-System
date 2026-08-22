@@ -5,18 +5,16 @@ import authService from "../services/auth.services";
 const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
 
-  const [status, setStatus] = useState("verifying");
+  const [status, setStatus] = useState("verifying"); // "verifying" | "success" | "already_verified" | "error"
   const [message, setMessage] = useState("");
   const hasVerified = useRef(false);
-
-  const [alreadyVerified, setAlreadyVerified] = useState(false);
 
   useEffect(() => {
     const token = searchParams.get("token");
 
     if (!token) {
       setStatus("error");
-      setMessage("Verification token is missing.");
+      setMessage("Verification token is missing from the link.");
       return;
     }
 
@@ -30,16 +28,18 @@ const VerifyEmail = () => {
       try {
         const result = await authService.verifyEmail(token);
 
-        setStatus("success");
-        setMessage(result.message || "Email verified successfully!");
         if (result.data?.alreadyVerified) {
-          setAlreadyVerified(true);
+          setStatus("already_verified");
+          setMessage(result.message || "Your email is already verified! You can log in.");
+        } else {
+          setStatus("success");
+          setMessage(result.message || "Email verified successfully!");
         }
       } catch (error) {
         setStatus("error");
         setMessage(
           error.response?.data?.message ||
-            "Email verification failed. The link may be invalid or expired.",
+            "Email verification failed. The link may be invalid or expired."
         );
       }
     };
@@ -76,85 +76,147 @@ const VerifyEmail = () => {
   };
 
   return (
-    <div
-      style={{
-        maxWidth: "500px",
-        margin: "100px auto",
-        textAlign: "center",
-        fontFamily: "sans-serif",
-      }}
-    >
+    <div className="auth-card" style={{ textAlign: "center" }}>
+      {/* 1. Verifying State */}
       {status === "verifying" && (
-        <>
-          <h2>Verifying your email...</h2>
-          <p>Please wait.</p>
-        </>
+        <div style={{ padding: "20px 0" }}>
+          <div
+            className="spinner"
+            style={{
+              width: "36px",
+              height: "36px",
+              margin: "0 auto 16px",
+              borderTopColor: "var(--primary)",
+              borderColor: "rgba(0, 112, 243, 0.2)",
+            }}
+          ></div>
+          <div className="auth-header">
+            <h2>Verifying your email...</h2>
+            <p>Please wait a moment while we process your request.</p>
+          </div>
+        </div>
       )}
 
+      {/* 2. Success State */}
       {status === "success" && (
-        <>
-          <h2>
-            {alreadyVerified
-              ? "Email Already Verified ℹ️"
-              : "Email Verified Successfully! ✅"}
-          </h2>
-          <p>{message}</p>
+        <div style={{ padding: "10px 0" }}>
+          <div style={{ fontSize: "54px", marginBottom: "16px" }}>✅</div>
+          <div className="auth-header">
+            <h2>Email Verified!</h2>
+            <p>{message}</p>
+          </div>
 
-          <Link to="/login">Go to Login</Link>
-        </>
+          <Link
+            to="/login"
+            className="btn-primary"
+            style={{ textDecoration: "none", marginTop: "20px" }}
+          >
+            Continue to Sign In
+          </Link>
+        </div>
       )}
 
+      {/* 3. Already Verified State */}
+      {status === "already_verified" && (
+        <div style={{ padding: "10px 0" }}>
+          <div style={{ fontSize: "54px", marginBottom: "16px" }}>ℹ️</div>
+          <div className="auth-header">
+            <h2>Already Verified</h2>
+            <p>{message}</p>
+          </div>
+
+          <Link
+            to="/login"
+            className="btn-primary"
+            style={{ textDecoration: "none", marginTop: "20px" }}
+          >
+            Go to Sign In
+          </Link>
+        </div>
+      )}
+
+      {/* 4. Expired / Error State */}
       {status === "error" && (
-        <>
-          <h2>Verification Failed ❌</h2>
-          <p>{message}</p>
+        <div style={{ padding: "10px 0" }}>
+          <div style={{ fontSize: "54px", marginBottom: "16px" }}>❌</div>
+          <div className="auth-header">
+            <h2>Verification Failed</h2>
+            <p>{message}</p>
+          </div>
 
           <div
             style={{
-              marginTop: "30px",
+              marginTop: "24px",
               padding: "20px",
-              border: "1px solid #ddd",
+              border: "1px solid var(--border)",
               borderRadius: "8px",
-              backgroundColor: "#fafafa",
+              backgroundColor: "#f8fafc",
+              textAlign: "left",
             }}
           >
-            <h3>Need a new verification link?</h3>
-            <form onSubmit={handleResend} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <h4
+              style={{
+                fontSize: "14px",
+                fontWeight: "600",
+                color: "#1e293b",
+                marginBottom: "8px",
+              }}
+            >
+              Need a new verification link?
+            </h4>
+            <p
+              style={{
+                fontSize: "13px",
+                color: "#64748b",
+                marginBottom: "14px",
+              }}
+            >
+              Enter your email address below to receive a fresh verification link.
+            </p>
+
+            <form onSubmit={handleResend} style={{ display: "grid", gap: "10px" }}>
               <input
                 type="email"
-                placeholder="Enter your email"
+                placeholder="you@example.com"
                 value={resendEmail}
                 onChange={(e) => setResendEmail(e.target.value)}
                 required
-                style={{ padding: "8px", borderRadius: "4px", border: "1px solid #ccc" }}
+                className="input-field"
               />
               <button
                 type="submit"
                 disabled={resendState.isLoading}
-                style={{
-                  padding: "10px",
-                  backgroundColor: "#007BFF",
-                  color: "#FFF",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: resendState.isLoading ? "not-allowed" : "pointer",
-                }}
+                className="btn-primary"
               >
-                {resendState.isLoading ? "Sending..." : "Resend Verification Email"}
+                {resendState.isLoading ? (
+                  <>
+                    <span className="spinner"></span>
+                    <span>Sending...</span>
+                  </>
+                ) : (
+                  "Resend Verification Link"
+                )}
               </button>
             </form>
 
             {resendState.message && (
-              <p style={{ color: resendState.isError ? "red" : "green", marginTop: "10px" }}>
-                {resendState.message}
-              </p>
+              <div
+                className={`alert-banner ${
+                  resendState.isError ? "error" : "success"
+                }`}
+                style={{ marginTop: "12px", marginBottom: 0 }}
+              >
+                <span>{resendState.message}</span>
+              </div>
             )}
           </div>
 
           <div style={{ marginTop: "20px" }}>
-            <Link to="/login">Go to Login</Link>
+            <Link to="/login" className="link-styled">
+              Return to Sign In
+            </Link>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

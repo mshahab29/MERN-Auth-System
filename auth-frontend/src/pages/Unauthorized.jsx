@@ -2,32 +2,15 @@ import { Link } from "react-router-dom";
 
 const Unauthorized = () => {
   return (
-    <div
-      style={{
-        maxWidth: "500px",
-        margin: "100px auto",
-        textAlign: "center",
-        fontFamily: "sans-serif",
-      }}
-    >
-      <h1 style={{ color: "#dc3545", fontSize: "36px", marginBottom: "10px" }}>
-        403 - Access Denied 🚫
-      </h1>
-      <p style={{ color: "#555", fontSize: "16px", marginBottom: "30px" }}>
-        You do not have the required permissions to access this resource.
-      </p>
-      <div>
-        <Link
-          to="/dashboard"
-          style={{
-            padding: "10px 20px",
-            backgroundColor: "#007BFF",
-            color: "#fff",
-            textDecoration: "none",
-            borderRadius: "4px",
-            fontWeight: "bold",
-          }}
-        >
+    <div className="auth-card" style={{ textAlign: "center" }}>
+      <div style={{ fontSize: "54px", marginBottom: "16px" }}>🚫</div>
+      <div className="auth-header">
+        <h1 style={{ fontSize: "28px", color: "#dc2626" }}>403 - Access Denied</h1>
+        <p>You do not have the required permissions to access this page.</p>
+      </div>
+
+      <div style={{ marginTop: "24px" }}>
+        <Link to="/dashboard" className="btn-primary" style={{ textDecoration: "none" }}>
           Return to Dashboard
         </Link>
       </div>

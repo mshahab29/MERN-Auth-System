@@ -9,141 +9,148 @@ const Dashboard = () => {
     await logout();
   };
 
+  const getInitials = (name) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        minHeight: "100vh",
-        backgroundColor: "#f3f4f6",
-        padding: "40px 20px",
-        gap: "30px",
-        fontFamily: "sans-serif",
-      }}
-    >
-      <div
-        style={{
-          backgroundColor: "#ffffff",
-          padding: "40px",
-          borderRadius: "12px",
-          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-          textAlign: "center",
-          width: "100%",
-          maxWidth: "450px",
-        }}
-      >
-        <h1
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      {/* Profile Summary Card */}
+      <div className="auth-card" style={{ textAlign: "center", padding: "32px 28px" }}>
+        {/* User Avatar Circle */}
+        <div
           style={{
-            marginTop: "0",
-            color: "#111827",
-            fontSize: "28px",
-            marginBottom: "10px",
+            width: "72px",
+            height: "72px",
+            borderRadius: "50%",
+            backgroundColor: "var(--primary)",
+            color: "#ffffff",
+            fontSize: "26px",
+            fontWeight: "700",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 16px",
+            boxShadow: "0 4px 12px rgba(0, 112, 243, 0.25)",
+            overflow: "hidden",
           }}
         >
-          Dashboard
-        </h1>
+          {user?.avatar ? (
+            <img
+              src={user.avatar}
+              alt={user.name}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          ) : (
+            getInitials(user?.name)
+          )}
+        </div>
 
-        <div style={{ marginBottom: "20px" }}>
+        <h2 style={{ fontSize: "22px", fontWeight: "700", color: "var(--text-main)", margin: "0 0 4px" }}>
+          {user?.name}
+        </h2>
+        <p style={{ fontSize: "14px", color: "var(--text-muted)", marginBottom: "18px" }}>
+          {user?.email}
+        </p>
+
+        {/* User Badges & Details Tag Grid */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            flexWrap: "wrap",
+            gap: "8px",
+            marginBottom: "24px",
+          }}
+        >
           <span
             style={{
-              display: "inline-block",
               padding: "4px 12px",
-              borderRadius: "12px",
-              backgroundColor: user?.role === "admin" ? "#f8d7da" : "#cff4fc",
-              color: user?.role === "admin" ? "#842029" : "#055160",
-              fontWeight: "bold",
-              fontSize: "14px",
+              borderRadius: "20px",
+              fontSize: "12px",
+              fontWeight: "600",
+              backgroundColor: user?.role === "admin" ? "#fef2f2" : "#eff6ff",
+              color: user?.role === "admin" ? "#dc2626" : "#2563eb",
+              border: `1px solid ${user?.role === "admin" ? "#fecaca" : "#bfdbfe"}`,
               textTransform: "uppercase",
             }}
           >
             Role: {user?.role}
           </span>
-        </div>
 
-        <h2
-          style={{
-            color: "#1f2937",
-            fontSize: "22px",
-            margin: "10px 0",
-          }}
-        >
-          Welcome, {user?.name}
-        </h2>
-
-        <p
-          style={{
-            color: "#6b7280",
-            fontSize: "16px",
-            marginBottom: "25px",
-          }}
-        >
-          Email: {user?.email}
-        </p>
-
-        {/* RBAC Quick Navigation Section */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-            marginBottom: "25px",
-          }}
-        >
-          <Link
-            to="/user-area"
+          <span
             style={{
-              padding: "10px",
-              backgroundColor: "#0d6efd",
-              color: "#fff",
-              textDecoration: "none",
-              borderRadius: "6px",
-              fontWeight: "bold",
+              padding: "4px 12px",
+              borderRadius: "20px",
+              fontSize: "12px",
+              fontWeight: "600",
+              backgroundColor: "#ecfdf5",
+              color: "#059669",
+              border: "1px solid #a7f3d0",
             }}
           >
-            Go to User Area 👤
+            Verified Email ✓
+          </span>
+
+          <span
+            style={{
+              padding: "4px 12px",
+              borderRadius: "20px",
+              fontSize: "12px",
+              fontWeight: "600",
+              backgroundColor: "#f8fafc",
+              color: "#475569",
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            Auth: {user?.provider === "google" ? "Google OAuth" : "Local Email"}
+          </span>
+        </div>
+
+        {/* Navigation Action Buttons */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
+          <Link
+            to="/user-area"
+            className="btn-outline"
+            style={{ textDecoration: "none", textAlign: "center" }}
+          >
+            Explore User Area 👤
           </Link>
 
           {user?.role === "admin" && (
             <Link
               to="/admin-area"
+              className="btn-outline"
               style={{
-                padding: "10px",
-                backgroundColor: "#dc3545",
-                color: "#fff",
                 textDecoration: "none",
-                borderRadius: "6px",
-                fontWeight: "bold",
+                textAlign: "center",
+                color: "#dc2626",
+                borderColor: "#fecaca",
+                backgroundColor: "#fff5f5",
               }}
             >
-              Go to Admin Panel 🛡️
+              Access Admin Panel 🛡️
             </Link>
           )}
         </div>
 
         <button
           onClick={handleLogout}
-          style={{
-            backgroundColor: "#6c757d",
-            color: "#ffffff",
-            border: "none",
-            padding: "12px 20px",
-            borderRadius: "6px",
-            fontSize: "16px",
-            fontWeight: "bold",
-            cursor: "pointer",
-            width: "100%",
-            transition: "background-color 0.2s",
-          }}
+          className="btn-primary"
+          style={{ backgroundColor: "#475569" }}
         >
-          Logout Current Device
+          Sign Out of Current Device
         </button>
       </div>
 
-      {/* Security - Active Sessions Management Section */}
-      <div style={{ width: "100%", maxWidth: "450px" }}>
-        <ActiveSessions />
-      </div>
+      {/* Active Sessions Widget */}
+      <ActiveSessions />
     </div>
   );
 };

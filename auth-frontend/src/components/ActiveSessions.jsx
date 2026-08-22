@@ -2,6 +2,54 @@ import { useEffect, useState } from "react";
 import authService from "../services/auth.services";
 import { useAuth } from "../context/AuthContext";
 
+const DesktopIcon = () => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#475569"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+    <line x1="8" y1="21" x2="16" y2="21" />
+    <line x1="12" y1="17" x2="12" y2="21" />
+  </svg>
+);
+
+const PhoneIcon = () => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#475569"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+    <line x1="12" y1="18" x2="12.01" y2="18" />
+  </svg>
+);
+
+const ShieldIcon = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="var(--primary)"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+);
+
 const ActiveSessions = () => {
   const { logout } = useAuth();
   const [sessions, setSessions] = useState([]);
@@ -31,7 +79,6 @@ const ActiveSessions = () => {
     try {
       const res = await authService.revokeSession(sessionId);
       if (res.data?.isCurrentSession) {
-        // If current session was revoked, perform logout
         await logout();
         return;
       }
@@ -59,112 +106,94 @@ const ActiveSessions = () => {
     return new Date(dateString).toLocaleDateString("en-US", options);
   };
 
-  const getDeviceIcon = (deviceType) => {
-    return deviceType === "mobile" ? "📱" : "💻";
-  };
-
   const otherSessionsCount = sessions.filter((s) => !s.isCurrent).length;
 
   return (
-    <div
-      style={{
-        backgroundColor: "#ffffff",
-        borderRadius: "12px",
-        border: "1px solid #e5e7eb",
-        padding: "24px",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-        fontFamily: "sans-serif",
-        textAlign: "left",
-        maxWidth: "450px",
-        margin: "0 auto",
-      }}
-    >
-      <h3
-        style={{
-          margin: "0 0 4px 0",
-          fontSize: "14px",
-          color: "#6b7280",
-          fontWeight: "600",
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-        }}
-      >
-        Security
-      </h3>
-      <h2
-        style={{
-          margin: "0 0 20px 0",
-          fontSize: "20px",
-          color: "#111827",
-          fontWeight: "700",
-        }}
-      >
-        Active Sessions
-      </h2>
+    <div className="auth-card" style={{ textAlign: "left", padding: "24px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+        <ShieldIcon />
+        <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700", color: "var(--text-main)" }}>
+          Active Sessions & Security
+        </h3>
+      </div>
 
-      {loading && <p style={{ color: "#6b7280" }}>Loading sessions...</p>}
-      {error && (
-        <p style={{ color: "#ef4444", fontSize: "14px", marginBottom: "12px" }}>
-          {error}
-        </p>
+      <p style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "20px" }}>
+        Manage all active logins across your devices and revoke unrecognized sessions.
+      </p>
+
+      {loading && (
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 0" }}>
+          <div
+            className="spinner"
+            style={{
+              width: "18px",
+              height: "18px",
+              borderTopColor: "var(--primary)",
+              borderColor: "rgba(0,112,243,0.2)",
+            }}
+          ></div>
+          <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>Loading active sessions...</span>
+        </div>
       )}
+
+      {error && (
+        <div className="alert-banner error" style={{ marginBottom: "16px" }}>
+          <span>{error}</span>
+        </div>
+      )}
+
       {actionMessage && (
-        <p style={{ color: "#10b981", fontSize: "14px", marginBottom: "12px" }}>
-          {actionMessage}
-        </p>
+        <div className="alert-banner success" style={{ marginBottom: "16px" }}>
+          <span>{actionMessage}</span>
+        </div>
       )}
 
       {!loading && sessions.length === 0 && (
-        <p style={{ color: "#6b7280" }}>No active sessions found.</p>
+        <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>No active sessions found.</p>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         {sessions.map((session) => (
           <div
             key={session.id}
             style={{
-              padding: "16px",
-              borderRadius: "8px",
-              backgroundColor: session.isCurrent ? "#f0fdf4" : "#f9fafb",
-              border: `1px solid ${session.isCurrent ? "#bbf7d0" : "#e5e7eb"}`,
               display: "flex",
-              justifyContent: "space-between",
               alignItems: "center",
+              justifyContent: "space-between",
+              padding: "14px 16px",
+              borderRadius: "10px",
+              backgroundColor: session.isCurrent ? "#f0fdf4" : "#f8fafc",
+              border: `1px solid ${session.isCurrent ? "#bbf7d0" : "#e2e8f0"}`,
             }}
           >
-            <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
               <div
                 style={{
-                  fontSize: "16px",
-                  fontWeight: "600",
-                  color: "#1f2937",
+                  width: "38px",
+                  height: "38px",
+                  borderRadius: "8px",
+                  backgroundColor: session.isCurrent ? "#dcfce7" : "#e2e8f0",
                   display: "flex",
                   alignItems: "center",
-                  gap: "8px",
+                  justifyContent: "center",
                 }}
               >
-                <span>{getDeviceIcon(session.deviceType)}</span>
-                <span>{session.device}</span>
+                {session.deviceType === "mobile" ? <PhoneIcon /> : <DesktopIcon />}
               </div>
-              <div
-                style={{
-                  fontSize: "13px",
-                  color: "#6b7280",
-                  marginTop: "4px",
-                }}
-              >
-                {session.isCurrent ? (
-                  <span
-                    style={{
-                      color: "#16a34a",
-                      fontWeight: "600",
-                    }}
-                  >
-                    Current session
-                  </span>
-                ) : (
-                  <span>{formatDate(session.createdAt)}</span>
-                )}
+              <div>
+                <div style={{ fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>
+                  {session.device}
+                </div>
+                <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+                  {session.isCurrent ? (
+                    <span style={{ color: "#16a34a", fontWeight: "600" }}>Current Session</span>
+                  ) : (
+                    <span>Logged in on {formatDate(session.createdAt)}</span>
+                  )}
+                  {session.ip && session.ip !== "Unknown IP" && (
+                    <span style={{ marginLeft: "8px", color: "#94a3b8" }}>• IP: {session.ip}</span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -172,18 +201,18 @@ const ActiveSessions = () => {
               <button
                 onClick={() => handleRevoke(session.id)}
                 style={{
-                  backgroundColor: "#ffffff",
-                  color: "#ef4444",
-                  border: "1px solid #fca5a5",
                   padding: "6px 12px",
-                  borderRadius: "6px",
-                  fontSize: "13px",
+                  fontSize: "12px",
                   fontWeight: "600",
+                  color: "#dc2626",
+                  backgroundColor: "#ffffff",
+                  border: "1px solid #fecaca",
+                  borderRadius: "6px",
                   cursor: "pointer",
-                  transition: "all 0.2s",
+                  transition: "all 0.2s ease",
                 }}
               >
-                Logout
+                Revoke
               </button>
             )}
           </div>
@@ -194,20 +223,20 @@ const ActiveSessions = () => {
         <button
           onClick={handleRevokeOthers}
           style={{
-            marginTop: "20px",
+            marginTop: "18px",
             width: "100%",
-            backgroundColor: "#fef2f2",
-            color: "#dc2626",
-            border: "1px solid #fecaca",
-            padding: "10px 16px",
-            borderRadius: "8px",
-            fontSize: "14px",
+            padding: "10px",
+            fontSize: "13px",
             fontWeight: "600",
+            color: "#dc2626",
+            backgroundColor: "#fef2f2",
+            border: "1px solid #fecaca",
+            borderRadius: "8px",
             cursor: "pointer",
-            transition: "all 0.2s",
+            transition: "all 0.2s ease",
           }}
         >
-          Logout all other devices
+          Logout all other devices ({otherSessionsCount})
         </button>
       )}
     </div>

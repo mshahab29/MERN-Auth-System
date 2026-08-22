@@ -22,36 +22,56 @@ const UserArea = () => {
   }, []);
 
   return (
-    <div
-      style={{
-        maxWidth: "600px",
-        margin: "50px auto",
-        padding: "20px",
-        fontFamily: "sans-serif",
-      }}
-    >
-      <h2>User Area (User + Admin) 👤</h2>
-      {loading && <p>Loading user area...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+    <div className="auth-card">
+      <div className="auth-header">
+        <h2>User Area (User + Admin) 👤</h2>
+        <p>Protected area accessible by authenticated users and admins</p>
+      </div>
+
+      {loading && (
+        <div style={{ textAlign: "center", padding: "20px" }}>
+          <div
+            className="spinner"
+            style={{
+              width: "28px",
+              height: "28px",
+              margin: "0 auto 10px",
+              borderTopColor: "var(--primary)",
+              borderColor: "rgba(0, 112, 243, 0.2)",
+            }}
+          ></div>
+          <p style={{ color: "#64748b", fontSize: "14px" }}>Loading user area...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="alert-banner error">
+          <span>{error}</span>
+        </div>
+      )}
+
       {data && (
         <div
           style={{
             padding: "20px",
-            backgroundColor: "#eef6ff",
+            backgroundColor: "#f0f7ff",
             borderRadius: "8px",
-            border: "1px solid #b6d4fe",
+            border: "1px solid #bae6fd",
+            textAlign: "left",
           }}
         >
-          <h3 style={{ marginTop: 0, color: "#055160" }}>{data.message}</h3>
-          <p style={{ margin: "8px 0" }}>
+          <h3 style={{ marginTop: 0, fontSize: "16px", color: "#0369a1", marginBottom: "12px" }}>
+            {data.message}
+          </h3>
+          <p style={{ margin: "6px 0", fontSize: "14px", color: "#334155" }}>
             <strong>Logged User:</strong> {data.user?.name} ({data.user?.email})
           </p>
-          <p style={{ margin: "8px 0" }}>
+          <p style={{ margin: "6px 0", fontSize: "14px", color: "#334155" }}>
             <strong>Assigned Role:</strong>{" "}
             <span
               style={{
-                fontWeight: "bold",
-                color: "#0d6efd",
+                fontWeight: "700",
+                color: "#0284c7",
                 textTransform: "uppercase",
               }}
             >
@@ -60,11 +80,9 @@ const UserArea = () => {
           </p>
         </div>
       )}
-      <div style={{ marginTop: "25px" }}>
-        <Link
-          to="/dashboard"
-          style={{ color: "#007BFF", textDecoration: "none" }}
-        >
+
+      <div style={{ marginTop: "24px", textAlign: "center" }}>
+        <Link to="/dashboard" className="link-styled">
           &larr; Back to Dashboard
         </Link>
       </div>

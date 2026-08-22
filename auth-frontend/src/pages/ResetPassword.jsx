@@ -1,191 +1,208 @@
-import { useState } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import authService from "../services/auth.services";
+import PasswordInput from "../components/PasswordInput";
+import PasswordRequirements from "../components/PasswordRequirements";
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
   const token = searchParams.get("token");
 
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [step, setStep] = useState(token ? "form" : "invalid"); // "form" | "invalid" | "success"
+  const [formData, setFormData] = useState({
+    password: "",
+    confirmPassword: "",
+  });
 
   const [uiState, setUiState] = useState({
     isLoading: false,
-    isSuccess: false,
     errorMsg: "",
   });
 
+  const [redirectCountdown, setRedirectCountdown] = useState(5);
+
+  useEffect(() => {
+    let timer;
+    if (step === "success" && redirectCountdown > 0) {
+      timer = setInterval(() => {
+        setRedirectCountdown((prev) => prev - 1);
+      }, 1000);
+    } else if (step === "success" && redirectCountdown === 0) {
+      navigate("/login");
+    }
+    return () => clearInterval(timer);
+  }, [step, redirectCountdown, navigate]);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setUiState({ isLoading: true, errorMsg: "" });
 
-    // 1. Check if token exists in the URL
-    if (!token) {
-      setUiState({ ...uiState, errorMsg: "Invalid or missing reset token." });
+    if (formData.password !== formData.confirmPassword) {
+      setUiState({
+        isLoading: false,
+        errorMsg: "Passwords do not match. Please check and try again.",
+      });
       return;
     }
-
-    // 2. Validate passwords match before sending request
-    if (password !== confirmPassword) {
-      setUiState({ ...uiState, errorMsg: "Passwords do not match" });
-      return;
-    }
-
-    setUiState({ isLoading: true, isSuccess: false, errorMsg: "" });
 
     try {
-      // 3. Send the token and new password to the backend
-      await authService.resetPassword(token, password);
-
-      setUiState({
-        isLoading: false,
-        isSuccess: true,
-        errorMsg: "",
-      });
+      await authService.resetPassword(token, formData.password);
+      setStep("success");
+      setUiState({ isLoading: false, errorMsg: "" });
     } catch (error) {
-      setUiState({
-        isLoading: false,
-        isSuccess: false,
-        errorMsg:
-          error.response?.data?.message ||
-          "Failed to reset password. The link may have expired.",
-      });
+      const errMsg =
+        error.response?.data?.message || "Failed to reset password. Link may be expired.";
+      
+      if (
+        errMsg.toLowerCase().includes("invalid") ||
+        errMsg.toLowerCase().includes("expired")
+      ) {
+        setStep("invalid");
+      } else {
+        setUiState({
+          isLoading: false,
+          errorMsg: errMsg,
+        });
+      }
     }
   };
 
+  const passwordsMatch =
+    formData.confirmPassword.length > 0 &&
+    formData.password === formData.confirmPassword;
+
   return (
-    <div
-      style={{
-        maxWidth: "400px",
-        margin: "50px auto",
-        fontFamily: "sans-serif",
-        textAlign: "center",
-      }}
-    >
-      {/* Success State */}
-      {uiState.isSuccess ? (
-        <div
-          style={{
-            padding: "20px",
-            backgroundColor: "#e6ffe6",
-            borderRadius: "8px",
-            border: "1px solid #b3ffb3",
-          }}
-        >
-          <h2 style={{ color: "green", marginTop: 0 }}>
-            Password Reset Successfully ✅
-          </h2>
-          <p style={{ color: "#333", marginBottom: "20px" }}>
-            Your password has been changed.
-          </p>
-          <Link
-            to="/login"
-            style={{
-              display: "inline-block",
-              padding: "10px 20px",
-              backgroundColor: "#007BFF",
-              color: "#FFF",
-              textDecoration: "none",
-              borderRadius: "4px",
-              fontWeight: "bold",
-            }}
-          >
-            Go to Login
-          </Link>
+    <div className="auth-card">
+      {/* 1. Invalid or Missing Token State */}
+      {step === "invalid" && (
+        <div style={{ textAlign: "center", padding: "10px 0" }}>
+          <div style={{ fontSize: "54px", marginBottom: "16px" }}>❌</div>
+          <div className="auth-header">
+            <h2>Link Expired or Invalid</h2>
+            <p>
+              This password reset link is invalid or has expired. Password reset links are
+              only valid for 15 minutes for your security.
+            </p>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "24px" }}>
+            <Link to="/forgot-password" className="btn-primary" style={{ textDecoration: "none" }}>
+              Request New Reset Link
+            </Link>
+
+            <Link to="/login" className="link-styled" style={{ marginTop: "8px" }}>
+              Return to Sign In
+            </Link>
+          </div>
         </div>
-      ) : (
-        /* Form State */
+      )}
+
+      {/* 2. Reset Password Form State */}
+      {step === "form" && (
         <>
-          <h2>Reset Password</h2>
+          <div className="auth-header">
+            <h2>Reset Password 🔒</h2>
+            <p>Enter your new password below to update your account access.</p>
+          </div>
 
           {uiState.errorMsg && (
-            <div
-              style={{
-                color: "red",
-                marginBottom: "15px",
-                padding: "10px",
-                backgroundColor: "#ffe6e6",
-                borderRadius: "4px",
-              }}
-            >
-              {uiState.errorMsg}
+            <div className="alert-banner error">
+              <span>{uiState.errorMsg}</span>
             </div>
           )}
 
-          <form
-            onSubmit={handleSubmit}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "15px",
-              textAlign: "left",
-            }}
-          >
-            <div>
-              <label
-                htmlFor="newPassword"
-                style={{ display: "block", marginBottom: "5px" }}
-              >
-                New Password
-              </label>
-              <input
-                type="password"
-                id="newPassword"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength="8"
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  boxSizing: "border-box",
-                  borderRadius: "4px",
-                  border: "1px solid #ccc",
-                }}
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label htmlFor="password">New Password</label>
+              <PasswordInput
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Enter new password"
+                autoComplete="new-password"
               />
+              <PasswordRequirements password={formData.password} />
             </div>
 
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                style={{ display: "block", marginBottom: "5px" }}
-              >
-                Confirm Password
-              </label>
-              <input
-                type="password"
+            <div className="form-group">
+              <label htmlFor="confirmPassword">Confirm New Password</label>
+              <PasswordInput
                 id="confirmPassword"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                minLength="8"
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  boxSizing: "border-box",
-                  borderRadius: "4px",
-                  border: "1px solid #ccc",
-                }}
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Repeat new password"
+                autoComplete="new-password"
               />
+              {formData.confirmPassword.length > 0 && (
+                <p
+                  style={{
+                    fontSize: "12px",
+                    marginTop: "4px",
+                    fontWeight: "600",
+                    color: passwordsMatch ? "#059669" : "#dc2626",
+                  }}
+                >
+                  {passwordsMatch ? "✓ Passwords match" : "✕ Passwords do not match"}
+                </p>
+              )}
             </div>
 
             <button
               type="submit"
               disabled={uiState.isLoading}
-              style={{
-                marginTop: "10px",
-                padding: "10px",
-                backgroundColor: "#007BFF",
-                color: "#FFF",
-                border: "none",
-                cursor: uiState.isLoading ? "not-allowed" : "pointer",
-                borderRadius: "4px",
-                fontWeight: "bold",
-              }}
+              className="btn-primary"
+              style={{ marginTop: "10px" }}
             >
-              {uiState.isLoading ? "Resetting..." : "Reset Password"}
+              {uiState.isLoading ? (
+                <>
+                  <span className="spinner"></span>
+                  <span>Updating Password...</span>
+                </>
+              ) : (
+                "Reset Password"
+              )}
             </button>
           </form>
+
+          <div style={{ marginTop: "24px", textAlign: "center" }}>
+            <Link to="/login" className="link-styled">
+              &larr; Back to Sign In
+            </Link>
+          </div>
         </>
+      )}
+
+      {/* 3. Reset Password Success State */}
+      {step === "success" && (
+        <div style={{ textAlign: "center", padding: "10px 0" }}>
+          <div style={{ fontSize: "54px", marginBottom: "16px" }}>🛡️</div>
+          <div className="auth-header">
+            <h2>Password Changed!</h2>
+            <p>Your password has been successfully updated. All active sessions have been secured.</p>
+          </div>
+
+          <div
+            className="alert-banner success"
+            style={{ margin: "20px 0", textAlign: "center" }}
+          >
+            <span>Redirecting to Sign In in {redirectCountdown} seconds...</span>
+          </div>
+
+          <Link to="/login" className="btn-primary" style={{ textDecoration: "none" }}>
+            Sign In Now
+          </Link>
+        </div>
       )}
     </div>
   );
