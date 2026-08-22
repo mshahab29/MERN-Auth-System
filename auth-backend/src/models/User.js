@@ -70,6 +70,14 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true,
           },
+          userAgent: {
+            type: String,
+            default: "Unknown Device",
+          },
+          ip: {
+            type: String,
+            default: "Unknown IP",
+          },
           createdAt: {
             type: Date,
             default: Date.now,

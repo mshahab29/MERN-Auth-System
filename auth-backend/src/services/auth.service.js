@@ -14,6 +14,7 @@ const {
 } = require("./email.service");
 const crypto = require("crypto");
 const ApiError = require("../utils/ApiError");
+const { parseUserAgent } = require("../utils/userAgent");
 
 const register = async (userData) => {
   const { name, email, password } = userData;
@@ -86,7 +87,7 @@ const verifyEmail = async (rawToken) => {
   };
 };
 
-const login = async (loginData) => {
+const login = async (loginData, userAgent, ip) => {
   const { email, password } = loginData;
   const user = await userRepository.findUserByEmail(email);
 
@@ -113,13 +114,13 @@ const login = async (loginData) => {
   const accessToken = await user.generateAccessToken();
   const refreshToken = await user.generateRefreshToken();
 
-  await userRepository.saveRefreshToken(user._id, refreshToken);
+  await userRepository.saveRefreshToken(user._id, refreshToken, userAgent, ip);
 
   return { user, accessToken, refreshToken };
 };
 
 // Google LOGIN only work for an existing Google account
-const googleLogin = async (credential) => {
+const googleLogin = async (credential, userAgent, ip) => {
   const googleUser = await verifyGoogleIdToken(credential);
   const { sub: googleId, email, name, picture, email_verified } = googleUser;
 
@@ -139,7 +140,7 @@ const googleLogin = async (credential) => {
   const accessToken = user.generateAccessToken();
   const refreshToken = user.generateRefreshToken();
 
-  await userRepository.saveRefreshToken(user._id, refreshToken);
+  await userRepository.saveRefreshToken(user._id, refreshToken, userAgent, ip);
 
   return {
     accessToken,
@@ -148,7 +149,7 @@ const googleLogin = async (credential) => {
   };
 };
 
-const googleSignup = async (credential) => {
+const googleSignup = async (credential, userAgent, ip) => {
   const googleUser = await verifyGoogleIdToken(credential);
 
   const { sub: googleId, email, name, picture, email_verified } = googleUser;
@@ -187,7 +188,7 @@ const googleSignup = async (credential) => {
   const accessToken = user.generateAccessToken();
   const refreshToken = user.generateRefreshToken();
 
-  await userRepository.saveRefreshToken(user._id, refreshToken);
+  await userRepository.saveRefreshToken(user._id, refreshToken, userAgent, ip);
 
   return {
     accessToken,
@@ -224,7 +225,7 @@ const resendVerification = async (email) => {
   return true;
 };
 
-const refreshAccessToken = async (refreshToken) => {
+const refreshAccessToken = async (refreshToken, userAgent, ip) => {
   const decoded = verifyRefreshToken(refreshToken);
 
   const user = await userRepository.findUserByRefreshToken(
@@ -252,12 +253,66 @@ const refreshAccessToken = async (refreshToken) => {
     id: user._id,
   });
 
-  await userRepository.saveRefreshToken(user._id, newRefreshToken);
+  await userRepository.saveRefreshToken(
+    user._id,
+    newRefreshToken,
+    userAgent,
+    ip,
+  );
 
   return {
     accessToken: newAccessToken,
     refreshToken: newRefreshToken,
   };
+};
+
+const getActiveSessions = async (userId, currentRefreshToken) => {
+  const user = await userRepository.findUserSessions(userId);
+
+  if (!user || !user.refreshTokens) {
+    return [];
+  }
+
+  return user.refreshTokens.map((session) => {
+    const parsed = parseUserAgent(session.userAgent);
+    return {
+      id: session._id,
+      device: parsed.label,
+      browser: parsed.browser,
+      os: parsed.os,
+      deviceType: parsed.deviceType,
+      ip: session.ip,
+      createdAt: session.createdAt,
+      isCurrent: session.token === currentRefreshToken,
+    };
+  });
+};
+
+const revokeSession = async (userId, sessionId, currentRefreshToken) => {
+  const user = await userRepository.findUserSessions(userId);
+
+  if (!user || !user.refreshTokens) {
+    throw new ApiError(404, "Session not found");
+  }
+
+  const targetSession = user.refreshTokens.find(
+    (s) => s._id.toString() === sessionId,
+  );
+
+  if (!targetSession) {
+    throw new ApiError(404, "Session not found");
+  }
+
+  const isCurrentSession = targetSession.token === currentRefreshToken;
+
+  await userRepository.removeSessionById(userId, sessionId);
+
+  return { isCurrentSession };
+};
+
+const revokeAllOtherSessions = async (userId, currentRefreshToken) => {
+  await userRepository.removeAllOtherSessions(userId, currentRefreshToken);
+  return true;
 };
 
 const logout = async (refreshToken) => {
@@ -337,6 +392,9 @@ module.exports = {
   googleLogin,
   googleSignup,
   refreshAccessToken,
+  getActiveSessions,
+  revokeSession,
+  revokeAllOtherSessions,
   logout,
   forgotPassword,
   resetPassword,

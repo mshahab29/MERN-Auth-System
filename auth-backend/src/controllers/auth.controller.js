@@ -63,7 +63,14 @@ const resendVerification = async (req, res) => {
 };
 
 const login = async (req, res) => {
-  const { user, accessToken, refreshToken } = await authService.login(req.body);
+  const userAgent = req.headers["user-agent"];
+  const ip = req.ip || req.headers["x-forwarded-for"] || "Unknown IP";
+
+  const { user, accessToken, refreshToken } = await authService.login(
+    req.body,
+    userAgent,
+    ip,
+  );
 
   res
     .status(200)
@@ -78,12 +85,14 @@ const login = async (req, res) => {
 
 const googleLogin = async (req, res) => {
   const { credential } = req.body;
+  const userAgent = req.headers["user-agent"];
+  const ip = req.ip || req.headers["x-forwarded-for"] || "Unknown IP";
 
   if (!credential) {
     throw new ApiError(400, "Google credential is required");
   }
 
-  const result = await authService.googleLogin(credential);
+  const result = await authService.googleLogin(credential, userAgent, ip);
 
   const { accessToken, refreshToken, user } = result;
 
@@ -99,12 +108,14 @@ const googleLogin = async (req, res) => {
 
 const googleSignup = async (req, res) => {
   const { credential } = req.body;
+  const userAgent = req.headers["user-agent"];
+  const ip = req.ip || req.headers["x-forwarded-for"] || "Unknown IP";
 
   if (!credential) {
     throw new ApiError(400, "Google credential is required");
   }
 
-  const result = await authService.googleSignup(credential);
+  const result = await authService.googleSignup(credential, userAgent, ip);
 
   const { accessToken, refreshToken, user } = result;
 
@@ -126,12 +137,18 @@ const getMe = async (req, res) => {
 
 const refresh = async (req, res) => {
   const { refreshToken } = req.cookies;
+  const userAgent = req.headers["user-agent"];
+  const ip = req.ip || req.headers["x-forwarded-for"] || "Unknown IP";
 
   if (!refreshToken) {
     throw new ApiError(401, "Refresh token not provided");
   }
 
-  const tokens = await authService.refreshAccessToken(refreshToken);
+  const tokens = await authService.refreshAccessToken(
+    refreshToken,
+    userAgent,
+    ip,
+  );
 
   res.cookie("refreshToken", tokens.refreshToken, getCookieOptions());
 
@@ -140,6 +157,52 @@ const refresh = async (req, res) => {
       accessToken: tokens.accessToken,
     }),
   );
+};
+
+const getSessions = async (req, res) => {
+  const { refreshToken } = req.cookies;
+
+  const sessions = await authService.getActiveSessions(
+    req.user._id,
+    refreshToken,
+  );
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, "Active sessions retrieved successfully", sessions),
+    );
+};
+
+const revokeSession = async (req, res) => {
+  const { sessionId } = req.params;
+  const { refreshToken } = req.cookies;
+
+  const result = await authService.revokeSession(
+    req.user._id,
+    sessionId,
+    refreshToken,
+  );
+
+  if (result.isCurrentSession) {
+    res.clearCookie("refreshToken", { path: "/api/auth" });
+  }
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, "Session revoked successfully", result));
+};
+
+const revokeOtherSessions = async (req, res) => {
+  const { refreshToken } = req.cookies;
+
+  await authService.revokeAllOtherSessions(req.user._id, refreshToken);
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, "All other sessions revoked successfully"),
+    );
 };
 
 const logout = async (req, res) => {
@@ -198,6 +261,9 @@ module.exports = {
   googleSignup,
   getMe,
   refresh,
+  getSessions,
+  revokeSession,
+  revokeOtherSessions,
   logout,
   forgotPassword,
   resetPassword,

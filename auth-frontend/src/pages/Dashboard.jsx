@@ -1,5 +1,6 @@
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
+import ActiveSessions from "../components/ActiveSessions";
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -12,10 +13,12 @@ const Dashboard = () => {
     <div
       style={{
         display: "flex",
-        justifyContent: "center",
+        flexDirection: "column",
         alignItems: "center",
         minHeight: "100vh",
         backgroundColor: "#f3f4f6",
+        padding: "40px 20px",
+        gap: "30px",
         fontFamily: "sans-serif",
       }}
     >
@@ -27,7 +30,7 @@ const Dashboard = () => {
           boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
           textAlign: "center",
           width: "100%",
-          maxWidth: "400px",
+          maxWidth: "450px",
         }}
       >
         <h1
@@ -133,8 +136,13 @@ const Dashboard = () => {
             transition: "background-color 0.2s",
           }}
         >
-          Logout
+          Logout Current Device
         </button>
+      </div>
+
+      {/* Security - Active Sessions Management Section */}
+      <div style={{ width: "100%", maxWidth: "450px" }}>
+        <ActiveSessions />
       </div>
     </div>
   );

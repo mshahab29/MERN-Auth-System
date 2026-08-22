@@ -188,5 +188,8 @@ Frontend runs at `http://localhost:5173`.
 | `GET`  | `/api/auth/me`                  | Fetch current user profile       | `Bearer` Access Token required    |
 | `POST` | `/api/auth/forgot-password`     | Send password reset link         | Unverified email check            |
 | `POST` | `/api/auth/reset-password`      | Reset password using token       | Revokes all refresh/access tokens |
+| `GET`  | `/api/auth/sessions`            | List active sessions             | Tokens hidden, `isCurrent` marked |
+| `DELETE`| `/api/auth/sessions/other`      | Revoke all other sessions        | Keeps current session active      |
+| `DELETE`| `/api/auth/sessions/:sessionId` | Revoke specific session          | Revokes individual session by ID  |
 | `GET`  | `/api/rbac/user-area`           | Access User Area                 | `user` or `admin` role required   |
 | `GET`  | `/api/rbac/admin-area`          | Access Admin Panel               | `admin` role required only        |

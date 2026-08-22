@@ -55,6 +55,19 @@ router.post("/refresh", asyncHandler(authController.refresh));
 // Logout user
 router.post("/logout", asyncHandler(authController.logout));
 
+// Active Sessions Management
+router.get("/sessions", authenticate, asyncHandler(authController.getSessions));
+router.delete(
+  "/sessions/other",
+  authenticate,
+  asyncHandler(authController.revokeOtherSessions),
+);
+router.delete(
+  "/sessions/:sessionId",
+  authenticate,
+  asyncHandler(authController.revokeSession),
+);
+
 // Get the authenticated user's information
 router.get("/me", authenticate, asyncHandler(authController.getMe));
 

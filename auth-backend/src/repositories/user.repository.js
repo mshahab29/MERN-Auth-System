@@ -51,7 +51,12 @@ const deleteUser = async (id) => {
   return await User.findByIdAndDelete(id);
 };
 
-const saveRefreshToken = async (userId, refreshToken) => {
+const saveRefreshToken = async (
+  userId,
+  refreshToken,
+  userAgent = "Unknown Device",
+  ip = "Unknown IP",
+) => {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   await User.findByIdAndUpdate(userId, {
     $pull: { refreshTokens: { createdAt: { $lt: sevenDaysAgo } } },
@@ -62,7 +67,7 @@ const saveRefreshToken = async (userId, refreshToken) => {
     {
       $push: {
         refreshTokens: {
-          $each: [{ token: refreshToken }],
+          $each: [{ token: refreshToken, userAgent, ip }],
           $slice: -5,
         },
       },
@@ -80,6 +85,10 @@ const findUserByRefreshToken = async (userId, refreshToken) => {
   }).select("+refreshTokens");
 };
 
+const findUserSessions = async (userId) => {
+  return await User.findById(userId).select("+refreshTokens");
+};
+
 const removeRefreshToken = async (userId, refreshToken) => {
   return await User.findByIdAndUpdate(
     userId,
@@ -87,6 +96,38 @@ const removeRefreshToken = async (userId, refreshToken) => {
       $pull: {
         refreshTokens: {
           token: refreshToken,
+        },
+      },
+    },
+    {
+      returnDocument: "after",
+    },
+  );
+};
+
+const removeSessionById = async (userId, sessionId) => {
+  return await User.findByIdAndUpdate(
+    userId,
+    {
+      $pull: {
+        refreshTokens: {
+          _id: sessionId,
+        },
+      },
+    },
+    {
+      returnDocument: "after",
+    },
+  );
+};
+
+const removeAllOtherSessions = async (userId, currentRefreshToken) => {
+  return await User.findByIdAndUpdate(
+    userId,
+    {
+      $pull: {
+        refreshTokens: {
+          token: { $ne: currentRefreshToken },
         },
       },
     },
@@ -173,7 +214,10 @@ module.exports = {
   deleteUser,
   saveRefreshToken,
   findUserByRefreshToken,
+  findUserSessions,
   removeRefreshToken,
+  removeSessionById,
+  removeAllOtherSessions,
   findUserByResetPasswordToken,
   saveResetPasswordToken,
   clearResetPasswordToken,

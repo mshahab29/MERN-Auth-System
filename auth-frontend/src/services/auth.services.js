@@ -74,6 +74,21 @@ const resendVerification = async (email) => {
   return response.data;
 };
 
+const getSessions = async () => {
+  const response = await api.get("/auth/sessions");
+  return response.data;
+};
+
+const revokeSession = async (sessionId) => {
+  const response = await api.delete(`/auth/sessions/${sessionId}`);
+  return response.data;
+};
+
+const revokeOtherSessions = async () => {
+  const response = await api.delete("/auth/sessions/other");
+  return response.data;
+};
+
 const authService = {
   register,
   login,
@@ -86,5 +101,8 @@ const authService = {
   resendVerification,
   forgotPassword,
   resetPassword,
+  getSessions,
+  revokeSession,
+  revokeOtherSessions,
 };
 export default authService;
