@@ -6,7 +6,7 @@ const env = require("../config/env");
 const getCookieOptions = () => ({
   httpOnly: true,
   secure: env.NODE_ENV === "production",
-  sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+  sameSite: "Strict",
   path: "/api/auth",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 });
@@ -34,13 +34,11 @@ const verifyEmail = async (req, res) => {
 
   const result = await authService.verifyEmail(token);
 
-  res
-    .status(200)
-    .json(
-      new ApiResponse(200, result.message, {
-        alreadyVerified: result.alreadyVerified,
-      }),
-    );
+  res.status(200).json(
+    new ApiResponse(200, result.message, {
+      alreadyVerified: result.alreadyVerified,
+    }),
+  );
 };
 
 const resendVerification = async (req, res) => {
@@ -200,9 +198,7 @@ const revokeOtherSessions = async (req, res) => {
 
   res
     .status(200)
-    .json(
-      new ApiResponse(200, "All other sessions revoked successfully"),
-    );
+    .json(new ApiResponse(200, "All other sessions revoked successfully"));
 };
 
 const logout = async (req, res) => {

@@ -10,12 +10,14 @@ const {
   resetPasswordValidation,
   resendVerificationValidation,
 } = require("../validators/auth.validator");
+const { authLimiter } = require("../middleware/rateLimiter.middleware");
 
 const router = express.Router();
 
 // Register a new user
 router.post(
   "/signup",
+  authLimiter,
   registerValidation,
   validate,
   asyncHandler(authController.register),
@@ -28,9 +30,14 @@ router.post(
   validate,
   asyncHandler(authController.resendVerification),
 );
-router.post("/forgot-password", asyncHandler(authController.forgotPassword));
+router.post(
+  "/forgot-password",
+  authLimiter,
+  asyncHandler(authController.forgotPassword),
+);
 router.post(
   "/reset-password",
+  authLimiter,
   resetPasswordValidation,
   validate,
   asyncHandler(authController.resetPassword),
@@ -39,6 +46,7 @@ router.post(
 // Login an existing user
 router.post(
   "/login",
+
   loginValidation,
   validate,
   asyncHandler(authController.login),
