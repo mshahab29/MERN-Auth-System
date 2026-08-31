@@ -21,6 +21,17 @@ app.use(cookieParser());
 
 // CORS Middleware
 app.use(cors({ origin: env.CLIENT_URL, credentials: true }));
+
+app.use((req, res, next) => {
+  Object.defineProperty(req, "query", {
+    value: { ...req.query },
+    writable: true,
+    configurable: true,
+    enumerable: true,
+  });
+  next();
+});
+
 // Data Sanitization against NoSQL Injection
 app.use(mongoSanitize());
 // Data Sanitization against XSS
